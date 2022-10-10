@@ -10,7 +10,12 @@ from util import box_ops
 from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
                        accuracy, get_world_size, interpolate,
                        is_dist_avail_and_initialized)
-
+"""
+输入数据为NestedTensor，包括tensor和mask两个成员,tensor是输入图像，mask与tensor尺寸相等但是单通道。
+以整个batch为例：
+tensor：获取batch中最大的w、h，用0padding补齐（右，下）。
+mask：宽高与图像对应，padding位置为true，其余位置为false。最终使用时会取反，补全的位置全为0，图像填充的地方为1，合理。
+"""
 from .backbone import build_backbone
 from .matcher import build_matcher
 from .segmentation import (DETRsegm, PostProcessPanoptic, PostProcessSegm,
@@ -49,6 +54,7 @@ class DETR(nn.Module):
             It returns a dict with the following elements:
                - "pred_logits": the classification logits (including no-object) for all queries.
                                 Shape= [batch_size x num_queries x (num_classes + 1)]
+                                logits:全连接层的输出，此处应为所有查询的分类结果
                - "pred_boxes": The normalized boxes coordinates for all queries, represented as
                                (center_x, center_y, height, width). These values are normalized in [0, 1],
                                relative to the size of each individual image (disregarding possible padding).
@@ -58,6 +64,7 @@ class DETR(nn.Module):
         """
         if isinstance(samples, (list, torch.Tensor)):
             samples = nested_tensor_from_tensor_list(samples)
+            '''samples类型若为tensor则转为nested_tensor？'''
         features, pos = self.backbone(samples)
 
         src, mask = features[-1].decompose()
